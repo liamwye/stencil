@@ -1,4 +1,4 @@
-stencil
+Stencil
 =======
 
-Simple PHP template engine
+Simple PHP template engine, utilising PHP as the templating language.
