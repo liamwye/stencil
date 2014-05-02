@@ -13,25 +13,20 @@ namespace Stencil\Filter;
 /**
  * Apply basic escaping to variables.
  */
-class EscapeVariableFilter implements VariableFilterInterface
+class EscapeVariableFilter extends AbstractVariableFilter
 {
     /**
-     * {@inheritdocs}
+     * Apply some basic variable escaping.
+     *
+     * @see                    htmlspecialchars()
+     * @param  mixed $variable The variable to process.
+     * @return mixed           The variable once processed.
      */
-    public function process($variables)
-    {
-        if (is_array($variables)) {
-            foreach ($variables as $key => $value) {
-                if (is_array($value)) {
-                    # Run the process recursively within the array to see if there are any strings to escape...
-                    $value = $this->process($value);
-                } elseif (is_string($value)) {
-                    # Do some basic escaping...
-                    $variables[$key] = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                }
-            }
+    protected function each($variable) {
+        if (is_string($variable)) {
+            $variable = htmlspecialchars($variable, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         }
 
-        return $variables;
+        return $variable;
     }
 }
