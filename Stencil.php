@@ -1,47 +1,41 @@
 <?php
 
 /**
- * Part of the Stencil templating framework. A basic PHP templating library
- * for handling your templating requirements.
+ * Part of the Stencil templating framework.
  *
- * @package Wye\Stencil
- * @author  Liam Wye <me@liamwye.me>
+ * @package  Stencil
+ * @author   Liam Wye <me@liamwye.me>
  * @license  http://opensource.org/licenses/MIT The MIT license (MIT)
- * @version  0.2.1
+ * @version  0.3
  */
-namespace Wye\Stencil;
+namespace Stencil;
 
 /**
  * Simple Templating Engine designed to harness PHP as its templating language.
  *
- * Opted against providing an application level cache in favour of utilising
- * HTML caching appropriately. An application level cache built-in to a
- * template framework would require a certain application structure, where as
- * an HTML cache class can be implemented far easier and deployed in any
- * structure.
  * PHP usage in templates can be streamlined using the PHP alternative syntax.
  *
  * @see http://www.php.net/manual/en/control-structures.alternative-syntax.php
  */
-class Template implements ITemplate
+class Stencil implements Template
 {
     /**
      * Name of the template.
      * @var string
      */
-    protected $templateName;
+    protected $name;
 
     /**
      * Extension used for template files.
      * @var string
      */
-    protected $templateExtension = '.stencil.php';
+    protected $extension = '.stencil.php';
 
     /**
      * Path to the main template directory.
      * @var string
      */
-    protected $templateDirectory;
+    protected $directory;
 
     /**
      * Filters to be applied to the template before and after rendering.
@@ -102,18 +96,61 @@ class Template implements ITemplate
     /**
      * Initialise the template with some basic configuration.
      *
-     * @param string  $templateName      Name of the template.
-     * @param string  $templateDirectory Path to the template directory.
-     * @param boolean $inherit           Whether the template should inherit
-     *                                   variables from parent templates.
+     * @param string  $name      Name of the template.
+     * @param string  $directory Path to the template directory.
+     * @param boolean $inherit   Whether the template should inherit variables
+     *                           from parent templates.
      *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
+     * @return \Stencil\Stencil The Template object for fluidity.
      */
-    public function __construct($templateName, $templateDirectory = 'templates/', $inherit = false)
+    public function __construct($name, $directory = 'templates/', $inherit = false)
     {
-        # Basic initialisation
-        $this->templateName = $templateName;
-        $this->templateDirectory = $templateDirectory;
+        // Init the stencil class
+        $this->name = $name;
+        $this->directory = $this->setDirectory($directory);
+        $this->inherit = $this->setInheritance($inherit);
+
+        return $this;
+    }
+
+    /**
+     * Set the extension used for template files.
+     *
+     * @param string $extension Extension for template files.
+     *
+     * @return \Stencil\Stencil The Template object for fluidity.
+     */
+    public function setExtension($extension)
+    {
+        $this->extension = $extension;
+
+        return $this;
+    }
+
+    /**
+     * Set the path to the template directory.
+     *
+     * @param string $path Path to the template directory.
+     *
+     * @return \Stencil\Stencil The Template object for fluidity.
+     */
+    public function setDirectory($path)
+    {
+        $this->directory = $path;
+
+        return $this;
+    }
+
+    /**
+     * Set whether the template should inherit variables passed from parent
+     * templates.
+     *
+     * @param boolean $inherit  Whether the template should inherit variables.
+     *
+     * @return \Stencil\Stencil The Template object for fluidity.
+     */
+    public function setInheritance($inherit)
+    {
         $this->inherit = $inherit;
 
         return $this;
@@ -125,11 +162,10 @@ class Template implements ITemplate
      * @param string $name  Name of the variable.
      * @param mixed  $value Value of the variable.
      *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
+     * @return \Stencil\Stencil The Template object for fluidity.
      */
     public function set($name, $value)
     {
-        # Add the data to the array of variables
         $this->variables[$name] = $value;
 
         return $this;
@@ -137,24 +173,23 @@ class Template implements ITemplate
 
     /**
      * Set an associative array as template variables.
-     * By utilising the $overwrite flag, you can have the array replace the
+     *
+     * By utilising the $replace flag, you can have the array overwrite the
      * existing variables as opposed to merging them.
      *
      * @param array   $variables Associative array of name => value pairs.
      * @param boolean $replace   Whether the existing variables should be
      *                           replaced and overwritten.
      *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
+     * @return \Stencil\Stencil The Template object for fluidity.
      */
     public function setArray($variables, $replace = false)
     {
-        # Check whether we want to replace the existing variables
+        // Check whether we want to replace the existing variables
         if ($replace) {
             $this->variables = $variables;
         } else {
-            # Set each variable using set() so we can preserve any additional
-            # processing, etc
-            # Provides a single point of entry
+            // Set each variable using set() so we can preserve any processing
             foreach ($variables as $key => $value) {
                 $this->set($key, $value);
             }
@@ -164,90 +199,44 @@ class Template implements ITemplate
     }
 
     /**
-     * Extend the template with a child template.
+     * Extend the template and create a child template.
      *
-     * @param string  $identifier        Name to use to identify the template.
-     * @param string  $templateName      Name of the template to be utilised,
-     *                                   if null value of identifier is
-     *                                   used/duplicated.
-     * @param string  $templateDirectory Path to the template directory, if null
-     *                                   value is inherited from parent.
-     * @param boolean $inherit           Whether the template should inherit
-     *                                   variables from parent templates, if
-     *                                   null value is inherited from parent.
+     * @param string  $identifier  Name to use to identify the template.
+     * @param string  $name        Name of the template to be utilised, if null
+     *                             value of identifier is used.
+     * @param string  $directory   Path to the template directory, if null value
+     *                             is inherited from parent.
+     * @param boolean $inherit     Whether the template should inherit variables
+     *                             from parent templates, if null value is inherited
+     *                             from parent.
      *
-     * @return \Wye\Stencil\ITemplate Instance of the newly created child
-     *                                template or false if unable to complete.
+     * @return \Stencil\Stencil    Instance of the newly created child template
+     *                             or false if unable to complete.
      */
-    public function extend($identifier, $templateName = null, $templateDirectory = null, $inherit = null)
+    public function extend($identifier, $name = null, $directory = null, $inherit = null)
     {
-        # Firstly, define the template directory
-        if (is_null($templateDirectory)) {
-            $templateDirectory = $this->templateDirectory;
-        }
-        # .. and template name
-        if (is_null($templateName)) {
-            $templateName = $identifier;
-        }
+        // Define some default values (using the parent for reference)
+        $name = (is_null($name) ? $identifier : $name);
+        $directory = (is_null($directory) ? $this->directory : $directory);
+        $inherit (is_null($inherit) ? $this->inherit : $inherit);
 
-        # Define the specific template class that is to be created
-        # .. In order to allow for extension, we'll attempt to find the name of
-        # the called class
+        // Define the template class that is to be created
+        // To allow extension we will try to get the name of the called class
         $class = false;
-
         if (function_exists('get_called_class')) {
             $class = get_called_class();
         } else {
-            $class = $this->getCalledClass();
+            $class = get_class($this);
         }
 
-        # If we have a class name, instanciate it and bind it to the template
+        // If we have a class name, instanciate it and bind it to the template
         if ($class !== false) {
-            # Define the arguments to pass
-            if (is_null($templateDirectory)) {
-                $templateDirectory = $this->templateDirectory;
-            }
-            if (is_null($inherit)) {
-                $inherit = $this->inherit;
-            }
+            $template = new $class($name, $directory, $inherit);
 
-            $template = new $class($templateName, $templateDirectory, $inherit);
-
-            # Utilise the set method to add the template to take advantage of
-            # any preprocessing, etc
+            // Register the template with the parent (this)
             $this->set($identifier, $template);
 
             return $template;
-        }
-
-        return false;
-    }
-
-    /**
-     * Ugly implementation of get_called_class where not available.
-     * Returns the class that called the function. By this we mean the class
-     * which called the function in which getCalledClass was called.
-     *
-     * @return string The class that called the function.
-     */
-    protected function getCalledClass()
-    {
-        # Implement an "ugly" workaround to apply similar functionality
-        # to get_called_class
-        $backtrace = debug_backtrace();
-        if (isset($backtrace[0])) {
-            $instace = $backtrace[0]; # Define the instance of the backtrace
-
-            # Check to see if we can narrow down to finding the class name
-            if (array_key_exists('object', $instance)) {
-                if (array_key_exists('class', $instance)) {
-                    if ($instance['object'] instanceof $instance['class']) {
-                        $class = get_class($instance['object']);
-
-                        return $class;
-                    }
-                }
-            }
         }
 
         return false;
@@ -260,7 +249,7 @@ class Template implements ITemplate
      */
     public function getName()
     {
-        return $this->templateName;
+        return $this->name;
     }
 
     /**
@@ -270,20 +259,7 @@ class Template implements ITemplate
      */
     public function getPath()
     {
-        return $this->templateDirectory . $this->templateName . $this->templateExtension;
-    }
-
-    /**
-     * Get the path to the file to be rendered.
-     *
-     * @return string
-     */
-    protected function getRenderPath()
-    {
-        # By default return the template path
-        # .. Eventually can be overriden to supply paths to caches, etc
-
-        return $this->getPath();
+        return $this->directory . $this->name . $this->extension;
     }
 
     /**
@@ -295,24 +271,23 @@ class Template implements ITemplate
      */
     public function render($variables = null)
     {
-        # Check whether we're inheriting variables
-        # .. Ensure we have vars and this template is set to inherit variables
-        # from other sources
+        // Check whether if we have variables that we're inheriting
         if (!is_null($variables) && $this->inherit) {
             $this->setArray($variables);
         }
 
-        # Contine with rendering the template...
-        if (file_exists($this->getRenderPath())) {
-            # Run any processing required for the template variables
+        $path = $this->getPath();
+
+        if (file_exists($path)) {
+            // Pre-process the template variables
             $this->processTemplateVariables();
 
-            # Load the template into a string and return it
-            $template = $this->load($this->getRenderPath());
+            // Load the template into a string and return it
+            $template = $this->load($path);
 
             return $template;
         } else {
-            throw new \Exception('Template file ' . $this->getPath() . ' could not be found.');
+            throw new Stencil\StencilNotFoundException('Template file ' . $path . ' could not be found.');
         }
     }
 
@@ -329,35 +304,35 @@ class Template implements ITemplate
      */
     protected function load($__path)
     {
-        # Pre Process
+        // Pre Process
         $this->preProcess();
 
-        # Loop through the available variables and import them into the local
-        # namespace
+        // Loop through the available variables and import them into the local
+        // namespace
         foreach ($this->variables as $__key => $__variable) {
-            # Check whether we're dealing with a child template that needs
-            # to be rendered
-            if ($__variable instanceof \Wye\Stencil\ITemplate) {
-                # We need to unset this child from the list of variables to
-                # ensure we don't get stuck in a render loop
+            // Check whether we're dealing with a child template that needs
+            // to be rendered
+            if ($__variable instanceof \Stencil\Stencil) {
+                // We need to unset this child from the list of variables to
+                // ensure we don't get stuck in a render loop
                 unset($this->variables[$__key]);
 
-                # Render the template so we can have the content
+                // Render the template so we can have the content
                 $__variable = $__variable->render($this->variables);
             }
 
             $$__key = $__variable;
         }
 
-        ob_start();         			 # Start the output buffering
-        include ($__path);				 # Include the template file
-        $__template = ob_get_contents(); # Get the template contents from the buffer
-        ob_end_clean();					 # Tidy up
+        ob_start();         			 // Start the output buffering
+        include ($__path);				 // Include the template file
+        $__template = ob_get_contents(); // Get the template contents from the buffer
+        ob_end_clean();					 // Tidy up
 
-        # Apply any debugging (if defined within $this->debug)
+        // Apply any debugging (if defined within $this->debug)
         $__template = $this->debug($__template);
 
-        # Post Process
+        // Post Process
         $__template = $this->postProcess($__template);
 
         return $__template;
@@ -370,14 +345,14 @@ class Template implements ITemplate
      */
     protected function debug($template)
     {
-        # Check whether we need to apply any debug hinting
+        // Check whether we need to apply any debug hinting
         if ($this->debug) {
-            # Show a different set of comments for empty templates
+            // Show a different set of comments for empty templates
             if (empty($template)) {
-                $template = PHP_EOL . '<!-- [Stencil]: Empty Stencil \'' . $this->templateName . '\' -->' . PHP_EOL;
+                $template = PHP_EOL . '<!-- [Stencil]: Empty Stencil \'' . $this->name . '\' -->' . PHP_EOL;
             } else {
-                $debugHeader = PHP_EOL . '<!-- [Stencil]: Start \'' . $this->templateName . '\' -->' . PHP_EOL;
-                $debugFooter = PHP_EOL . '<!-- [Stencil]: End \'' . $this->templateName . '\' -->' . PHP_EOL;
+                $debugHeader = PHP_EOL . '<!-- [Stencil]: Start \'' . $this->name . '\' -->' . PHP_EOL;
+                $debugFooter = PHP_EOL . '<!-- [Stencil]: End \'' . $this->name . '\' -->' . PHP_EOL;
 
                 $template = $debugHeader  . $template . $debugFooter;
             }
@@ -395,10 +370,10 @@ class Template implements ITemplate
      */
     public function registerFilter($filter)
     {
-        # Check whether we're registering a template or variable filter
-        if ($filter instanceof \Wye\Stencil\Filter\ITemplateFilter) {
+        // Check whether we're registering a template or variable filter
+        if ($filter instanceof \Stencil\Filter\TemplateFilter) {
             $this->templateFilters[] = $filter;
-        } elseif ($filter instanceof \Wye\Stencil\Filter\IVariableFilter) {
+        } elseif ($filter instanceof \Stencil\Filter\IVariableFilter) {
             $this->variableFilters[] = $filter;
         }
     }
@@ -410,13 +385,13 @@ class Template implements ITemplate
      */
     protected function processTemplateVariables()
     {
-        # Check to ensure we have var filters to run
+        // Check to ensure we have var filters to run
         if ((count($this->variableFilters) > 0)) {
             foreach ($this->variableFilters as $filter) {
-                # Ensure the filter that has been registered is infact an
-                # instance of IVariableFilter
-                if ($filter instanceof \Wye\Stencil\Filter\IVariableFilter) {
-                    # Filter!
+                // Ensure the filter that has been registered is infact an
+                // instance of IVariableFilter
+                if ($filter instanceof \Stencil\Filter\IVariableFilter) {
+                    // Filter!
                     $this->variables = $filter->process($this->variables);
                 }
             }
@@ -430,9 +405,9 @@ class Template implements ITemplate
      */
     protected function preProcess()
     {
-        # Loop through the filters and execute post processing on the buffer
+        // Loop through the filters and execute post processing on the buffer
         foreach ($this->templateFilters as $filter) {
-            if ($filter instanceof ITemplateFilter) {
+            if ($filter instanceof TemplateFilter) {
                 $filter->preProcess();
             }
         }
@@ -448,56 +423,14 @@ class Template implements ITemplate
      */
     protected function postProcess($buffer)
     {
-        # Loop through the filters and execute their post processing on the buffer
+        // Loop through the filters and execute their post processing on the buffer
         foreach ($this->templateFilters as $filter) {
-            if ($filter instanceof \Wye\Stencil\Filter\ITemplateFilter) {
+            if ($filter instanceof \Stencil\Filter\TemplateFilter) {
                 $buffer = $filter->postProcess($buffer);
             }
         }
 
         return $buffer;
-    }
-
-    /**
-     * Set the extension used for template files.
-     *
-     * @param string $extension Extension for template files.
-     *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
-     */
-    public function setExtension($extension)
-    {
-        $this->templateExtension = $extension;
-
-        return $this;
-    }
-
-    /**
-     * Set the path to the template directory.
-     *
-     * @param string $path Path to the template directory.
-     *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
-     */
-    public function setTemplateDirectory($path)
-    {
-        $this->templateDirectory = $path;
-
-        return $this;
-    }
-
-    /**
-     * Set whether the template should inherit variables passed from parent templates.
-     *
-     * @param boolean $inherit Whether the template should inherit variables.
-     *
-     * @return \Wye\Stencil\ITemplate The Template object for fluidity.
-     */
-    public function setInheritance($inherit)
-    {
-        $this->inherit = $inherit;
-
-        return $this;
     }
 
     /**
@@ -548,15 +481,15 @@ class Template implements ITemplate
      */
     protected function nav($route, $text, $classes = array(), $condition = true)
     {
-        # Check whether this can be displayed
+        // Check whether this can be displayed
         if ($condition === true) {
-            # Check whether this route is currently active
+            // Check whether this route is currently active
             $active = false;
             if ($route == $this->navigationActiveRoute) {
                 $active = true;
             }
 
-            # Build the link
+            // Build the link
             echo sprintf(
                 '<li%s><a href="%s" title="%s"%s>%s</a>',
                 (($active) ? ' class="active"' : ''),
@@ -576,7 +509,7 @@ class Template implements ITemplate
      */
     public function addJs($script, $weight = null)
     {
-        # Build the js array
+        // Build the js array
         $js = array('js' => $script, 'src' => null);
 
         $this->addJsArray($js, $weight);
@@ -591,7 +524,7 @@ class Template implements ITemplate
      */
     public function addJsFile($path, $weight = null)
     {
-        # Build the js array
+        // Build the js array
         $js = array('js' => null, 'src' => $path);
 
         $this->addJsArray($js, $weight);
@@ -605,15 +538,15 @@ class Template implements ITemplate
      */
     protected function addJsArray($js, $weight)
     {
-        # Convert the JS array into a StdObject
+        // Convert the JS array into a StdObject
         $js = (object) $js;
 
         if (!in_array($js, $this->js)) {
             $weight = (is_null($weight) ? $this->jsNextWeight() : $weight);
 
-            # Check if the weighted value already exists
+            // Check if the weighted value already exists
             if (isset($this->js[$weight])) {
-                # Convert the existing weight into a 3d array
+                // Convert the existing weight into a 3d array
                 if (!is_array($this->js[$weight])) {
                     $this->js[$weight] = array($this->js[$weight]);
                 }
@@ -645,11 +578,11 @@ class Template implements ITemplate
     {
         // Pre sort the array
         ksort($this->js);
-        
-        # Build the JS from the internal array
-        # array(js, src)
+
+        // Build the JS from the internal array
+        // array(js, src)
         foreach ($this->js as $weight => $js) {
-            # Check whether we're dealing with multiple items sharing the same weight
+            // Check whether we're dealing with multiple items sharing the same weight
             if (is_array($js)) {
                 foreach ($js as $j) {
                     echo $this->formatJs($j);
@@ -671,11 +604,11 @@ class Template implements ITemplate
     {
         $script = '';
 
-        # Check whether we're dealing with a file or raw js
+        // Check whether we're dealing with a file or raw js
         if (is_null($js->js) && !is_null($js->src)) {
             $script = sprintf('<script src="%s"></script>', $js->src);
         } else {
-            # TODO: Do we want to concat all sequential raw js output and echo as one??
+            // TODO: Do we want to concat all sequential raw js output and echo as one??
             $script = sprintf("<script>%s\t%s%s</script>", PHP_EOL, $js->js, PHP_EOL);
         }
 
@@ -686,7 +619,7 @@ class Template implements ITemplate
     {
         $css = array('path' => $path, 'media' => $media);
 
-        # Add the style to the array of styles
+        // Add the style to the array of styles
         if (!in_array($css, $this->styles)) {
             $this->styles[] = $css;
         }
