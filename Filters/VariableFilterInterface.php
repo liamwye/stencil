@@ -8,7 +8,7 @@
  * @license  http://opensource.org/licenses/MIT The MIT license (MIT)
  * @version  0.3
  */
-namespace Stencil\Filter;
+namespace Stencil\Filters;
 
 /**
  * Interface for Stencil Variable Filters.
