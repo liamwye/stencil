@@ -109,6 +109,11 @@ class Template implements TemplateInterface
      */
     public function setDirectory($path)
     {
+        if  (!is_dir($path)) {
+            throw new \Stencil\Exceptions\StencilDirectoryNotFoundException('Template
+                directory "' . $path . '" could not be found.');
+        }
+
         $this->directory = $path;
 
         return $this;
