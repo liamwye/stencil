@@ -17,37 +17,20 @@ namespace Stencil;
  *
  * @see http://www.php.net/manual/en/control-structures.alternative-syntax.php
  */
-class Template implements TemplateInterface
+class Template extends \Stencil\Observer\Observable implements TemplateInterface
 {
     /**
-     * Name of the template. Used as a reference to access the template.
+     * The name used to identify the template.
+     * This is especially relevant when the template is extended from a parent.
      * @var string
      */
-    protected $name;
+    protected $identifier;
 
     /**
-     * Extension used for template files.
-     * @var string
-     */
-    protected $extension = '.stencil.php';
-
-    /**
-     * Path to the main template directory.
-     * @var string
-     */
-    protected $directory;
-
-    /**
-     * Filters to be applied to the template before and after rendering.
+     * An array of Template configuration values.
      * @var array
      */
-    protected $templateFilters = array();
-
-    /**
-     * Filters to be applied to the variables before rendering.
-     * @var array
-     */
-    protected $variableFilters = array();
+    protected $configuration = array();
 
     /**
      * Variables bound to the template.
@@ -56,82 +39,72 @@ class Template implements TemplateInterface
     protected $variables = array();
 
     /**
-     * Whether the template should inherit variables from parent templates.
-     */
-    protected $inherit;
-
-    /**
-     * Whether the template should be rendered with debug hinting or not.
-     * @var boolean
-     */
-    protected $debug = true;
-
-    /**
      * Initialise the template with some basic configuration.
      *
-     * @param string  $name      Name of the template.
-     * @param string  $directory Path to the template directory.
-     * @param boolean $inherit   Whether the template should inherit variables
-     *                           from parent templates.
+     * @param string  $identifier  Name used to identify the template.
+     * @param array   $config      An array of configuration key value pairs.
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function __construct($name, $directory = 'templates/', $inherit = false)
+    public function __construct(String $identifier, Array $config = array())
     {
-        // Init the stencil class
-        $this->name = $name;
-        $this->directory = $this->setDirectory($directory);
-        $this->inherit = $this->setInheritance($inherit);
+        $this->identifier = $identifier;
 
-        return $this;
-    }
-
-    /**
-     * Set the extension used for template files.
-     *
-     * @param string $extension Extension for template files.
-     *
-     * @return \Stencil\Template The Template object for fluidity.
-     */
-    public function setExtension($extension)
-    {
-        $this->extension = $extension;
-
-        return $this;
-    }
-
-    /**
-     * Set the path to the template directory.
-     *
-     * @param string $path Path to the template directory.
-     *
-     * @return \Stencil\Template The Template object for fluidity.
-     */
-    public function setDirectory($path)
-    {
-        if  (!is_dir($path)) {
-            throw new \Stencil\Exceptions\StencilDirectoryNotFoundException('Template
-                directory "' . $path . '" could not be found.');
+        // Check that we have a path value present
+        // This is a mandatory value as we need to know where the template file is
+        if (!array_key_exists('path', $config) || empty($config['path'])) {
+            throw new \Stencil\Exceptions\StencilNotFoundException('No Stencil path given.');
         }
 
-        $this->directory = $path;
+        // Define the configuration
+        $this->configuration = $config;
 
         return $this;
     }
 
-    /**
-     * Set whether the template should inherit variables passed from parent
-     * templates.
-     *
-     * @param boolean $inherit  Whether the template should inherit variables.
-     *
-     * @return \Stencil\Template The Template object for fluidity.
-     */
-    public function setInheritance($inherit)
-    {
-        $this->inherit = $inherit;
+    public function __call($method, $parameters = array()) {
+        // Get the prefix; get/set
+        $prefix = strtolower(substr($method, 0, 3));
 
-        return $this;
+        // Get the rest of the method name; the key
+        $key = strtolower(substr($method, 3));
+
+        // Handle the call according to the prefix
+        if ($prefix === 'get') {
+            $result = false;
+            if (array_key_exists($key, $this->configuration)) {
+                $result = $this->configuration[$key];
+            } elseif ($key === 'identifier') {
+                $result = $this->identifier;
+            }
+
+            return $result;
+        } elseif ($prefix === 'set') {
+            // Check for the value
+            if (count($parameters) > 0) {
+                $value = array_shift($parameters);
+
+                // Run some additional processing for paths
+                if ($key === 'path') {
+                    if (!file_exists($value)) {
+                        throw new \Stencil\Exceptions\StencilNotFoundException('Stencil
+                            could not be found.');
+                    }
+                }
+
+                // Set the value
+                if ($key === 'identifier') {
+                    $this->identifier = $value;
+                } else {
+                    $this->configuration[$key] = $value;
+                }
+
+                // Return the object for fluidity
+                return $this;
+            }
+        }
+
+        throw new BadMethodCallException('Call to undefined method.');
     }
 
     /**
@@ -142,7 +115,7 @@ class Template implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function set($name, $value)
+    public function set(String $name, $value)
     {
         $this->variables[$name] = $value;
 
@@ -161,7 +134,7 @@ class Template implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function setArray($variables, $replace = false)
+    public function setArray(Array $variables, Boolean $replace = false)
     {
         // Check whether we want to replace the existing variables
         if ($replace) {
@@ -180,54 +153,29 @@ class Template implements TemplateInterface
      * Extend the template and create a child template.
      *
      * @param string  $identifier  Name to use to identify the template.
-     * @param string  $name        Name of the template to be utilised, if null
-     *                             value of identifier is used.
-     * @param string  $directory   Path to the template directory, if null value
-     *                             is inherited from parent.
-     * @param boolean $inherit     Whether the template should inherit variables
-     *                             from parent templates, if null value is inherited
-     *                             from parent.
+     * @param array   $config      An array of configuration key value pairs.
      *
      * @return \Stencil\Template    Instance of the newly created child template
      *                             or false if unable to complete.
      */
-    public function extend($identifier, $name = null, $directory = null, $inherit = null)
+    public function extend(String $identifier, Array $config = array())
     {
-        // Define some default values (using the parent for reference)
-        $name = (is_null($name) ? $identifier : $name);
-        $directory = (is_null($directory) ? $this->directory : $directory);
-        $inherit (is_null($inherit) ? $this->inherit : $inherit);
+        // Merge the existing configuration with what we have been passed
+        // Existing values will be overwritten if new values are passed
+        $config = array_merge($this->configuration, $config);
 
         // To allow extension we will try to get the name of the called class
+        $template = false;
         try {
             // Instanciate the child and add it to the parent template
-            $template = new \Stencil\Template($name, $directory, $inherit);
+            $template = new \Stencil\Template($identifier, $config);
+
             $this->set($identifier, $template);
-
-            return $template;
         } catch (\Exception $e) {
-            return false;
+            $template = false;
         }
-    }
 
-    /**
-     * Get the name of the template.
-     *
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Get the path to the template file.
-     *
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->directory . $this->name . $this->extension;
+        return $template;
     }
 
     /**
@@ -263,18 +211,19 @@ class Template implements TemplateInterface
      * This encapsulation allows pre and post processing to be applied to the
      * process.
      *
-     * @param string $path Path to the file to load.
+     * Note: Internal variables are prefixed with '__' to attempt to avoid clashes
+     * in the local namespace.
      *
+     * @param string $path Path to the file to load.
      * @return string      The output from the file once loaded and processed.
      */
     protected function load($__path)
     {
         // Pre Process
-        $this->preProcess();
-
+        $this->dispatch('Template_PreProcess');
 
         // Pre-process the template variables
-        $this->preProcessVariables();
+        $this->dispatch('Variables_PreProcess', array(&$this->variables));
 
         // Loop through template variables and import them into local namespace
         foreach ($this->variables as $__key => $__variable) {
@@ -300,7 +249,7 @@ class Template implements TemplateInterface
             $__template = ob_get_contents(); // Get the template contents from the buffer
             ob_end_clean();                  // Tidy up
         } catch (\ErrorException $e) {
-            // TODO: Investigate whether we can identify and handle and missing variables
+            // Todo: Investigate whether we can identify and handle and missing variables
         }
 
         // Remove the render error handler
@@ -310,11 +259,25 @@ class Template implements TemplateInterface
         $__template = $this->debug($__template);
 
         // Post Process
-        $__template = $this->postProcess($__template);
+        $this->dispatch('Template_PostProcess', array(&$__template));
 
         return $__template;
     }
 
+    /**
+     * Implementation for set_error_handler(). This will allow us to convert runtime
+     * errors into PHP ErrorExceptions - these can then be caught and handled where
+     * appropriate.
+     *
+     * @see    set_error_handler()
+     * @see    ErrorException
+     *
+     * @param  Int    $errorNo   The error number.
+     * @param  String $errorStr  The error string.
+     * @param  String $errorFile The error file.
+     * @param  Int    $errorLine The error line.
+     * @return Boolean           Always false.
+     */
     protected function handleRenderErrors($errorNo, $errorStr, $errorFile, $errorLine) {
         // Throw an ErrorException
         throw new ErrorException($errorStr, 0, $errorNo, $errorFile, $errorLine);
@@ -343,77 +306,5 @@ class Template implements TemplateInterface
         }
 
         return $template;
-    }
-
-    /**
-     * Register a filter.
-     *
-     * @param mixed $filter The template filter to register.
-     *
-     * @return void
-     */
-    public function registerFilter($filter)
-    {
-        // Check whether we're registering a template or variable filter
-        if ($filter instanceof \Stencil\Filter\TemplateFilter) {
-            $this->templateFilters[] = $filter;
-        } elseif ($filter instanceof \Stencil\Filter\VariableFilterInterface) {
-            $this->variableFilters[] = $filter;
-        }
-    }
-
-    /**
-     * Execute pre processing methods on registered template filters.
-     *
-     * @return void
-     */
-    protected function preProcess()
-    {
-        // Loop through the filters and execute post processing
-        foreach ($this->templateFilters as $filter) {
-            if ($filter instanceof \Stencil\Filter\TemplateFilterInterface) {
-                $filter->preProcess();
-            }
-        }
-    }
-
-    /**
-     * Execute post processing methods on registered template filters.
-     *
-     * @param string $buffer Buffer returned from the result of loading a
-     *                       template file using output buffering.
-     *
-     * @return string
-     */
-    protected function postProcess($buffer)
-    {
-        // Loop through the filters and execute their post processing on the buffer
-        foreach ($this->templateFilters as $filter) {
-            if ($filter instanceof \Stencil\Filter\TemplateFilterInterface) {
-                $buffer = $filter->postProcess($buffer);
-            }
-        }
-
-        return $buffer;
-    }
-
-    /**
-     * Process template variables.
-     *
-     * @return void
-     */
-    protected function preProcessVariables()
-    {
-        // Check to ensure we have var filters to run
-        if ((count($this->variableFilters) > 0)) {
-            foreach ($this->variableFilters as $filter) {
-                // Ensure the filter that has been registered is infact an
-                // instance of IVariableFilter
-                if ($filter instanceof \Stencil\Filter\VariableFilterInterface) {
-                    // Filter!
-                    $this->variables = $filter->process($this->variables);
-                }
-            }
-        }
     }
 }
