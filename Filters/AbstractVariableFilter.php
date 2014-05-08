@@ -11,41 +11,33 @@
 namespace Stencil\Filters;
 
 /**
- * Provides a basic implementation of VariableFilterInterface that introduces
- * utility methods to allow easier extensibility.
+ *
  */
-abstract class AbstractVariableFilter implements VariableFilterInterface
+abstract class AbstractVariableFilter extends AbstractFilter
 {
     /**
-     * A basic implementation of the process() method.
-     * This will iterate through all of the template variables and fire a method
-     * on each variable for processing.
-     * This will allow a child classes to provide a very small and efficient filter.
+     * Provide an abstract implementation of filter which provides a basis for
+     * a basic variable filter. Each variable is iterated over and a function is
+     * called seperately on each.
      *
-     * @param string|array $variables The variables to filter.
-     * @return string The processed/filtered variable.
+     * @return String  The processed/filtered variable.
      */
-    public function process($variables) {
-        if (is_array($variables)) {
-            foreach ($variables as $key => $value) {
-                if (is_array($value)) {
-                    // Run the process recursively within the array to see if there are any strings to escape...
-                    $value = $this->process($value);
-                } else {
-                    $variables[$key] = $this->each($value);
-                }
-            }
-        }
+    public function filter() {
+        $variables = $this->getVariables();
+
+        // Process the array of variables recursively
+        array_walk_recursive($variables, array($this, 'each'));
 
         return $variables;
     }
 
     /**
-     * Abstract method that will be called by process() once for each variable.
+     * Will be called once for each variable passed in the context array.
      *
-     * @param  mixed $variable The variable from process().
-     * @return mixed           The variable once any processing has been carried
-     *                         out.
+     * @param  Mixed  $variable The variable.
+     * @param  String $key      The variable context key.
+     * @return Mixed            The variable once any processing has been carried
+     *                          out.
      */
-    abstract protected function each($variable);
+    abstract protected function each(&$variable, $key);
 }

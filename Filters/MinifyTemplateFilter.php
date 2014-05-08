@@ -13,26 +13,18 @@ namespace Stencil\Filters;
 /**
  * Implementation of a TemplateFilter to minify template output.
  */
-class MinifyTemplateFilter implements TemplateFilterInterface
+class MinifyTemplateFilter extends AbstractFilter
 {
     /**
      * {@inheritdoc}
      */
-    public function preProcess()
+    public function filter()
     {
-        return; # Nothing to do here, move along.
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function postProcess($buffer)
-    {
-        $regex = '%' . 									# Collapse ws everywhere but in blacklisted elements.
+        $regex = '%' . 									        # Collapse ws everywhere but in blacklisted elements.
                     '(?>' .              				# Match all whitespans other than single space.
                       '[^\S ]\s*' .      				# Either one [\t\r\n\f\v] and zero or more ws,
                     '| \s{2,}' .         				# or two or more consecutive-any-whitespace.
-                    ')' .  								# Note: The remaining regex consumes no text at all...
+                    ')' .  								      # Note: The remaining regex consumes no text at all...
                     '(?=' .             				# Ensure we are not in a blacklist tag.
                       '(?:' .            				# Begin (unnecessary) group.
                         '(?:' .          				# Zero or more of...
@@ -46,10 +38,16 @@ class MinifyTemplateFilter implements TemplateFilterInterface
                         '(?>textarea|pre)\b' .
                       '| \z' .           				# or end of file.
                       ')' .              				# End alternation group.
-                    ')' .   							# If we made it here, we are not in a blacklist tag.
+                    ')' .   							      # If we made it here, we are not in a blacklist tag.
                     '%ix';
 
-        $buffer = preg_replace($regex, ' ', $buffer);
+        // Define the buffer
+        $buffer = $this->getBuffer();
+
+        // Ensure that the buffer isn't empty
+        if (!empty($buffer)) {
+          $buffer = preg_replace($regex, ' ', $buffer);
+        }
 
         return $buffer;
     }

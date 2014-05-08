@@ -18,11 +18,12 @@ class EscapeVariableFilter extends AbstractVariableFilter
     /**
      * Apply some basic variable escaping.
      *
-     * @see                    htmlspecialchars()
-     * @param  mixed $variable The variable to process.
-     * @return mixed           The variable once processed.
+     * @see                     htmlspecialchars()
+     * @param  mixed  $variable The variable to process.
+     * @param  String $key      The variable key.
+     * @return mixed            The variable once processed.
      */
-    protected function each($variable) {
+    protected function each($variable, $key) {
         if (is_string($variable)) {
             $variable = htmlspecialchars($variable, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         }
