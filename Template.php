@@ -46,20 +46,51 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function __construct(String $identifier, Array $config = array())
-    {
+    public function __construct(String $identifier, Array $config = array()) {
         $this->identifier = $identifier;
 
-        // Check that we have a path value present
-        // This is a mandatory value as we need to know where the template file is
-        if (!array_key_exists('path', $config) || empty($config['path'])) {
-            throw new \Stencil\Exceptions\StencilNotFoundException('No Stencil path given.');
-        }
-
         // Define the configuration
-        $this->configuration = $config;
+        $this->setup($config);
 
         return $this;
+    }
+
+    /**
+     * Standardise any configuration and/or initialisation.
+     * Allows us to ensure configuration is processed correctly at all times.
+     *
+     * @param  array    $config An array of template configuration.
+     * @param  boolean  $merge  Whether the values should be merged or replaced.
+     * @return void
+     */
+    protected function setup(Array $config = array(), $merge = false, $return = false) {
+        // Check that config has values
+        if (!empty($config)) {
+            // Check if we have a path value or if we're setting a new config
+            // with no path value...
+            if (array_key_exists('path', $config) ||
+                (!array_key_exists('path', $config) && $merge === false)) {
+                if (!file_exists($config['path'])) {
+                    throw new \Stencil\Exceptions\StencilNotFoundException('Unable to find Stencil file.');
+                }
+            }
+
+            // Run any additional checks
+            // ...
+
+            // Check if we need to merge or add the array
+            if ($merge === true) {
+                // We overwrite any existing properties
+                $config = array_merge($this->configuration, $config);
+            }
+
+            // Check if we need to save the config internally
+            if ($return === false) {
+                $this->configuration = $config;
+            }
+
+            return $config;
+        }
     }
 
     /**
@@ -90,21 +121,15 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         } elseif ($prefix === 'set') {
             // Check for the value
             if (count($parameters) > 0) {
+                // Define the value to set
                 $value = array_shift($parameters);
-
-                // Run some additional processing for paths
-                if ($key === 'path') {
-                    if (!file_exists($value)) {
-                        throw new \Stencil\Exceptions\StencilNotFoundException('Stencil
-                            could not be found.');
-                    }
-                }
 
                 // Set the value
                 if ($key === 'identifier') {
                     $this->identifier = $value;
                 } else {
-                    $this->configuration[$key] = $value;
+                    // Utilise the central configuration method
+                    $this->setup($value, true);
                 }
 
                 // Return the object for fluidity
@@ -142,8 +167,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function setArray(Array $variables, Boolean $replace = false)
-    {
+    public function setArray(Array $variables, Boolean $replace = false) {
         // Check whether we want to replace the existing variables
         if ($replace) {
             $this->variables = $variables;
@@ -166,11 +190,9 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @return \Stencil\Template    Instance of the newly created child template
      *                             or false if unable to complete.
      */
-    public function extend(String $identifier, Array $config = array())
-    {
-        // Merge the existing configuration with what we have been passed
-        // Existing values will be overwritten if new values are passed
-        $config = array_merge($this->configuration, $config);
+    public function extend(String $identifier, Array $config = array()) {
+        // Utilise the setup method but prompt it to return the config and not save
+        $config = $this->setup($config, true, true);
 
         // To allow extension we will try to get the name of the called class
         $template = false;
@@ -193,8 +215,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return string
      */
-    public function render($variables = null)
-    {
+    public function render($variables = null) {
         // Check whether if we have variables that we're inheriting
         if (!is_null($variables) && $this->inherit) {
             $this->setArray($variables);
@@ -225,8 +246,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @param string $path Path to the file to load.
      * @return string      The output from the file once loaded and processed.
      */
-    protected function load($__path)
-    {
+    protected function load($__path) {
         // Define a base context for event dispatching
         $context = array(
             'identifier'    => $this->identifier,
@@ -294,7 +314,6 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @return Boolean           Always false.
      */
     protected function handleRenderErrors($errorNo, $errorStr, $errorFile, $errorLine) {
-        // Throw an ErrorException
         throw new ErrorException($errorStr, 0, $errorNo, $errorFile, $errorLine);
 
         return false;
