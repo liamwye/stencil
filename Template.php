@@ -219,11 +219,18 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      */
     protected function load($__path)
     {
+        // Define a base context for event dispatching
+        $context = array(
+            'identifier'    => $this->identifier,
+            'configuration' => &$this->configuration,
+            'variables'     => &$this->variables,
+        );
+
         // Pre Process
-        $this->dispatch('Template_PreProcess');
+        $this->dispatch('Template_PreProcess', $context);
 
         // Pre-process the template variables
-        $this->dispatch('Variables_PreProcess', array(&$this->variables));
+        $this->dispatch('Variables_PreProcess', $context);
 
         // Loop through template variables and import them into local namespace
         foreach ($this->variables as $__key => $__variable) {
@@ -255,11 +262,11 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         // Remove the render error handler
         restore_error_handler();
 
-        // Apply any debugging (if defined within $this->debug)
-        $__template = $this->debug($__template);
+        // Add the template content to the context
+        $context['template'] = &$template;
 
         // Post Process
-        $this->dispatch('Template_PostProcess', array(&$__template));
+        $this->dispatch('Template_PostProcess', $context);
 
         return $__template;
     }
@@ -283,28 +290,5 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         throw new ErrorException($errorStr, 0, $errorNo, $errorFile, $errorLine);
 
         return false;
-    }
-
-    /**
-     * Apply debugging comments to the template data.
-     *
-     * @param  string $template The template string.
-     * @return string           The template string with debugging comments.
-     */
-    protected function debug($template)
-    {
-        // Check whether we need to apply any debug hinting
-        if ($this->debug) {
-            // Show a different set of comments for empty templates
-            if (empty($template)) {
-                $template = PHP_EOL . '<!-- [Stencil]: Empty Stencil \'' . $this->name . '\' -->' . PHP_EOL;
-            } else {
-                $template = PHP_EOL . '<!-- [Stencil]: Start \'' . $this->name . '\' -->' . PHP_EOL
-                  . $template
-                  . PHP_EOL . '<!-- [Stencil]: End \'' . $this->name . '\' -->' . PHP_EOL;
-            }
-        }
-
-        return $template;
     }
 }
