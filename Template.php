@@ -62,6 +62,14 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         return $this;
     }
 
+    /**
+     * Provide access to the internal configuration via dynamic get/set methods.
+     * E.g. getIdentifier(), setPath(), etc.
+     *
+     * @param  string $method     The name of the method called.
+     * @param  array  $parameters An array of parameters passed to the method.
+     * @return mixed              The requested value or $this for fluidity.
+     */
     public function __call($method, $parameters = array()) {
         // Get the prefix; get/set
         $prefix = strtolower(substr($method, 0, 3));
@@ -256,7 +264,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
             $__template = ob_get_contents(); // Get the template contents from the buffer
             ob_end_clean();                  // Tidy up
         } catch (\ErrorException $e) {
-            // Todo: Investigate whether we can identify and handle and missing variables
+            // Todo: Investigate whether we can identify and handle missing variables
         }
 
         // Remove the render error handler
