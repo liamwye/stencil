@@ -46,7 +46,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function __construct(String $identifier, Array $config = array()) {
+    public function __construct($identifier, $config = array()) {
         $this->identifier = $identifier;
 
         // Define the configuration
@@ -63,7 +63,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @param  boolean  $merge  Whether the values should be merged or replaced.
      * @return void
      */
-    protected function setup(Array $config = array(), $merge = false, $return = false) {
+    protected function setup($config = array(), $merge = false, $return = false) {
         // Check that config has values
         if (!empty($config)) {
             // Check if we have a path value or if we're setting a new config
@@ -148,7 +148,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function set(String $name, $value)
+    public function set($name, $value)
     {
         $this->variables[$name] = $value;
 
@@ -167,7 +167,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function setArray(Array $variables, Boolean $replace = false) {
+    public function setArray($variables, $replace = false) {
         // Check whether we want to replace the existing variables
         if ($replace) {
             $this->variables = $variables;
@@ -190,7 +190,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @return \Stencil\Template    Instance of the newly created child template
      *                             or false if unable to complete.
      */
-    public function extend(String $identifier, Array $config = array()) {
+    public function extend($identifier, $config = array()) {
         // Utilise the setup method but prompt it to return the config and not save
         $config = $this->setup($config, true, true);
 
