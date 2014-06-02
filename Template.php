@@ -250,8 +250,9 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         // Define a base context for event dispatching
         $context = array(
             'identifier'    => $this->identifier,
-            'configuration' => &$this->configuration,
-            'variables'     => &$this->variables,
+            'configuration' => $this->configuration,
+            'variables'     => $this->variables,
+            'buffer'        => '',
         );
 
         // Pre Process
@@ -261,61 +262,27 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         $this->dispatch('Variables_PreProcess', $context);
 
         // Loop through template variables and import them into local namespace
-        foreach ($this->variables as $__key => $__variable) {
+        foreach ($context['variables'] as $__key => $__variable) {
             // Check this is a child template that needs to be rendered
             if ($__variable instanceof \Stencil\TemplateInterface) {
                 // Unset the child to prevent a render loop
-                unset($this->variables[$__key]);
+                unset($context['variables'][$__key]);
 
                 // Render the template [recursive]
-                $__variable = $__variable->render($this->variables);
+                $__variable = $__variable->render($context['variables']);
             }
 
             $$__key = $__variable;
         }
 
-        // Have stencil check the rendering process for PHP errors.
-        // This is largely to avoid E_NOTICEs from variables that don't exist.
-        set_error_handler(array($this, 'handleRenderErrors'));
-
-        try {
-            ob_start();                      // Start the output buffering
-            include ($__path);               // Include the template file
-            $__template = ob_get_contents(); // Get the template contents from the buffer
-            ob_end_clean();                  // Tidy up
-        } catch (\ErrorException $e) {
-            // Todo: Investigate whether we can identify and handle missing variables
-        }
-
-        // Remove the render error handler
-        restore_error_handler();
-
-        // Add the template content to the context
-        $context['template'] = &$template;
+        ob_start();
+        @include ($__path);
+        $context['buffer'] = ob_get_contents();
+        ob_end_clean();
 
         // Post Process
         $this->dispatch('Template_PostProcess', $context);
 
-        return $__template;
-    }
-
-    /**
-     * Implementation for set_error_handler(). This will allow us to convert runtime
-     * errors into PHP ErrorExceptions - these can then be caught and handled where
-     * appropriate.
-     *
-     * @see    set_error_handler()
-     * @see    ErrorException
-     *
-     * @param  Int    $errorNo   The error number.
-     * @param  String $errorStr  The error string.
-     * @param  String $errorFile The error file.
-     * @param  Int    $errorLine The error line.
-     * @return Boolean           Always false.
-     */
-    protected function handleRenderErrors($errorNo, $errorStr, $errorFile, $errorLine) {
-        throw new ErrorException($errorStr, 0, $errorNo, $errorFile, $errorLine);
-
-        return false;
+        return $context['buffer'];
     }
 }

@@ -29,7 +29,7 @@ class Observable implements ObservableInterface
      * @param  Array  $parameters The parameters to pass to any listeners.
      * @return Boolean            Whether any listeners were notified.
      */
-    public function dispatch($event, $parameters = array())
+    public function dispatch($event, &$parameters = array())
     {
         // Ensure we've got listeners to dispatch to..
         if ($this->hasListeners($event)) {
@@ -40,7 +40,7 @@ class Observable implements ObservableInterface
                     array_unshift($parameters, $event);
 
                     // Attempt to call the event method on the listener
-                    call_user_func_array($listeners[$event][$priority][$i], $parameters);
+                    $parameters = call_user_func($this->listeners[$event][$priority][$i], $parameters);
                 }
             }
 
@@ -55,12 +55,17 @@ class Observable implements ObservableInterface
      * A priority can be provided to define the order in which listeners are
      * notified.
      *
-     * @param Callable  $listener  The lsitener to be notified.
+     * @param Callable  $listener  The listener to be notified.
      * @param String    $event     The name of the event to listen to.
      * @param Integer   $priority  The priority to add the listener with (0 based)
      */
     public function addListener($listener, $event, $priority = '5')
     {
+        // Build the listener callable
+        if (!is_array($listener)) {
+            $listener = array($listener, 'process');
+        }
+
         // Check to ensure that our array structure has been built
         if (!array_key_exists($event, $this->listeners)) {
             $this->listeners[$event] = array();

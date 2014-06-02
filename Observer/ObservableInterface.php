@@ -15,7 +15,7 @@ namespace Stencil\Observer;
  */
 interface ObservableInterface
 {
-    public function dispatch($event, $parameters);
+    public function dispatch($event, &$parameters);
 
     public function addListener($listener, $event, $priority);
 
