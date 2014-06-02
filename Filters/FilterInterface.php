@@ -19,8 +19,7 @@ interface FilterInterface
      * Used to process data passed from a Stencil template.
      *
      * @param  Array $context  The data to process.
-     *
      * @return Array           The processed context array.
      */
-    public function process(Array $context);
+    public function process($context);
 }

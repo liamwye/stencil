@@ -13,20 +13,18 @@ namespace Stencil\Filters;
 /**
  * Wrap template output with debugging comments.
  */
-class DebugTemplateFilter
+class DebugTemplateFilter implements FilterInterface
 {
-    public function filter() {
-        $buffer = $this->getBuffer();
-
+    public function process($context) {
         // Show a different set of comments for empty templates
-        if (empty($template)) {
-            $template = PHP_EOL . '<!-- [Stencil]: Empty Stencil \'' . $this->name . '\' -->' . PHP_EOL;
+        if (empty($context['buffer'])) {
+            $context['buffer'] = '<!-- [Stencil]: Empty Stencil \'' . $context['identifier'] . '\' -->';
         } else {
-            $template = PHP_EOL . '<!-- [Stencil]: Start \'' . $this->name . '\' -->' . PHP_EOL
-                . $template
-                . PHP_EOL . '<!-- [Stencil]: End \'' . $this->name . '\' -->' . PHP_EOL;
+            $context['buffer'] = '<!-- [Stencil]: Start \'' . $context['identifier'] . '\' -->' . PHP_EOL
+                . $context['buffer']
+                . PHP_EOL . '<!-- [Stencil]: End \'' . $context['identifier'] . '\' -->' . PHP_EOL;
         }
 
-        return $buffer;
+        return $context;
     }
 }
