@@ -15,7 +15,8 @@ namespace Stencil\Filters;
  */
 class DebugTemplateFilter implements FilterInterface
 {
-    public function process($context) {
+    public function process($context)
+    {
         $comment = '<!-- /stencil/' . strtolower($context['identifier']) . ' -->';
 
         // Wrap the buffer with the debug comments

@@ -23,7 +23,8 @@ class EscapeVariableFilter extends AbstractVariableFilter
      * @param  String $key      The variable key.
      * @return mixed            The variable once processed.
      */
-    protected function each($variable, $key) {
+    protected function each(&$variable, $key)
+    {
         if (is_string($variable)) {
             $variable = htmlspecialchars($variable, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         }

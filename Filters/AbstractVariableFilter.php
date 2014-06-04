@@ -20,9 +20,12 @@ abstract class AbstractVariableFilter implements FilterInterface
      * a basic variable filter. Each variable is iterated over and a function is
      * called seperately on each.
      */
-    public function process(&$context) {
+    public function process($context)
+    {
         // Process the array of variables recursively
         array_walk_recursive($context['variables'], array($this, 'each'));
+
+        return $context;
     }
 
     /**

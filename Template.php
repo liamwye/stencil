@@ -46,7 +46,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function __construct($identifier, $config = array()) {
+    public function __construct($identifier, $config = array())
+    {
         $this->identifier = $identifier;
 
         // Define the configuration
@@ -63,7 +64,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @param  boolean  $merge  Whether the values should be merged or replaced.
      * @return void
      */
-    protected function setup($config = array(), $merge = false, $return = false) {
+    protected function setup($config = array(), $merge = false, $return = false)
+    {
         // Check that config has values
         if (!empty($config)) {
             // Check if we have a path value or if we're setting a new config
@@ -101,7 +103,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @param  array  $parameters An array of parameters passed to the method.
      * @return mixed              The requested value or $this for fluidity.
      */
-    public function __call($method, $parameters = array()) {
+    public function __call($method, $parameters = array())
+    {
         // Get the prefix; get/set
         $prefix = strtolower(substr($method, 0, 3));
 
@@ -167,7 +170,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return \Stencil\Template The Template object for fluidity.
      */
-    public function setArray($variables, $replace = false) {
+    public function setArray($variables, $replace = false)
+    {
         // Check whether we want to replace the existing variables
         if ($replace) {
             $this->variables = $variables;
@@ -190,7 +194,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @return \Stencil\Template    Instance of the newly created child template
      *                             or false if unable to complete.
      */
-    public function extend($identifier, $config = array()) {
+    public function extend($identifier, $config = array())
+    {
         // Utilise the setup method but prompt it to return the config and not save
         $config = $this->setup($config, true, true);
 
@@ -215,7 +220,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      *
      * @return string
      */
-    public function render($variables = null) {
+    public function render($variables = null)
+    {
         // Check whether if we have variables that we're inheriting
         if (!is_null($variables) && $this->inherit) {
             $this->setArray($variables);
@@ -246,7 +252,8 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
      * @param string $path Path to the file to load.
      * @return string      The output from the file once loaded and processed.
      */
-    protected function load($__path) {
+    protected function load($__path)
+    {
         // Define a base context for event dispatching
         $context = array(
             'identifier'    => $this->identifier,
