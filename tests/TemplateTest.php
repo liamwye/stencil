@@ -79,7 +79,7 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
             'TestElEmeNT' => '123',
         ));
 
-        $this->assertEquals('123', $this->getTestElement());
+        $this->assertEquals('123', $template->getTestElement());
     }
 
     /**
