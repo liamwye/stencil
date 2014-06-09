@@ -68,17 +68,17 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
     {
         // Check that config has values
         if (!empty($config)) {
-            // Check if we have a path value or if we're setting a new config
-            // with no path value...
-            if (array_key_exists('path', $config) ||
-                (!array_key_exists('path', $config) && $merge === false)) {
+            // Convert all configuration options to lowercase indexes
+            $config = array_change_key_case($config, CASE_LOWER);
+
+            // Check if we have a path value
+            if (array_key_exists('path', $config)) {
                 if (!file_exists($config['path'])) {
                     throw new \Stencil\Exceptions\StencilNotFoundException('Unable to find Stencil file.');
                 }
+            } elseif (!array_key_exists('path', $config) && $merge === false) {
+                throw new \Stencil\Exceptions\StencilNotFoundException('A Stencil path is required to initiate a template.');
             }
-
-            // Run any additional checks
-            // ...
 
             // Check if we need to merge or add the array
             if ($merge === true) {
@@ -114,7 +114,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         // Handle the call according to the prefix
         if ($prefix === 'get') {
             $result = false;
-            if (array_key_exists($key, $this->configuration)) {
+            if (isset($this->configuration[$key])) {
                 $result = $this->configuration[$key];
             } elseif ($key === 'identifier') {
                 $result = $this->identifier;
@@ -131,6 +131,9 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
                 if ($key === 'identifier') {
                     $this->identifier = $value;
                 } else {
+                    // Define the value as a key value pair
+                    $value = array($key => $value);
+
                     // Utilise the central configuration method
                     $this->setup($value, true);
                 }
@@ -140,7 +143,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
             }
         }
 
-        throw new BadMethodCallException('Call to undefined method.');
+        throw new \BadMethodCallException('Call to undefined method.');
     }
 
     /**
@@ -223,7 +226,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
     public function render($variables = null)
     {
         // Check whether if we have variables that we're inheriting
-        if (!is_null($variables) && $this->inherit) {
+        if (!is_null($variables) && $this->getInherit() === true) {
             $this->setArray($variables);
         }
 
