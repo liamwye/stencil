@@ -1,0 +1,1 @@
+<h1><?php echo $testvar; ?></h1><br /><p><?php echo $testvar2; ?></p>

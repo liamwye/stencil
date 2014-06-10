@@ -34,7 +34,7 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
     public function testConstructSetConfig()
     {
         $template = new Template('testIdentifier', array(
-            'path'    => 'TemplateTest.php', // This exists and is a valid path
+            'path'    => 'test.stencil.php', // This exists and is a valid path
             'inherit' => true,
         ));
 
@@ -75,7 +75,7 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
     public function testConstructSetConfigIsCaseInsensitive()
     {
         $template = new Template('testIdentifier', array(
-            'path'        => 'TemplateTest.php',
+            'path'        => 'test.stencil.php',
             'TestElEmeNT' => '123',
         ));
 
@@ -88,7 +88,7 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
     public function testDynamicGetMethod()
     {
         $template = new Template('testIdentifier', array(
-            'path'        => 'TemplateTest.php',
+            'path'        => 'test.stencil.php',
             'testElement' => '123',
         ));
 
@@ -126,9 +126,9 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
     public function testDynamicSetPathMethod()
     {
         $template = new Template('testIdentifier');
-        $template->setPath('TemplateTest.php');
+        $template->setPath('test.stencil.php');
 
-        $this->assertEquals('TemplateTest.php', $template->getPath());
+        $this->assertEquals('test.stencil.php', $template->getPath());
     }
 
     /**
@@ -151,7 +151,7 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
     public function testDynamicGetAndSetIsCaseInsensitive()
     {
         $template = new Template('testIdentifier', array(
-            'path' => 'TemplateTest.php',
+            'path' => 'test.stencil.php',
         ));
 
         $template->setThisisnotCaseSensiTive('123');
@@ -166,13 +166,111 @@ class TemplateTest extends \PHPUnit_Framework_TestCase
      * @expectedException           \BadMethodCallException
      * @expectedExceptionMessage    Call to undefined method.
      */
-    public function testDynamicMethodOtherThanGetOrSet()
+    public function testDynamicMethodUsingADifferentPrefix()
     {
         $template = new Template('testIdentifier', array(
-            'path'     => 'TemplateTest.php',
+            'path'     => 'test.stencil.php',
             'testTest' => '123',
             'test'     => '345',
         ));
         $template->testTest();
     }
+
+    /**
+     * Test that template variables are set and rendered appropriately.
+     */
+    public function testSetTemplateVariable()
+    {
+        $template = new Template('testIdentifier', array(
+            'path' => 'test.stencil.php',
+        ));
+        $template->set('testvar', '123');
+        $template->set('testvar2', '456');
+
+        $result = $template->render();
+
+        $this->assertEquals('<h1>123</h1><br /><p>456</p>', $result);
+    }
+
+    /**
+     * Test that an array of template variables can be set and rendered properly.
+     */
+    public function testSetArrayOfTemplateVariables()
+    {
+        $template = new Template('testIdentifier', array(
+            'path' => 'test.stencil.php',
+        ));
+        $template->setArray(array(
+            'testvar'  => '123',
+            'testvar2' => '456',
+        ));
+
+        $result = $template->render();
+
+        $this->assertEquals('<h1>123</h1><br /><p>456</p>', $result);
+    }
+
+    /**
+     * Test that an array of template variables can be added to existing template
+     * variables without removing any existing template variables.
+     */
+    public function testSetArrayOfTemplateVariablesAddingToExistingVariables()
+    {
+        $template = new Template('testIdentifier', array(
+            'path' => 'test.stencil.php',
+        ));
+        $template->set('testvar', '123');
+
+        $template->setArray(array(
+            'testvar2' => '111',
+        ));
+
+        $result = $template->render();
+
+        $this->assertEquals('<h1>123</h1><br /><p>111</p>', $result);
+    }
+
+    /**
+     * Test that an array of template variables can be added to the template
+     * overwriting any existing template variables.
+     * @return [type] [description]
+     */
+    public function testSetArrayOfTemplateVariablesAndOverwriteExistingVariables()
+    {
+        $template = new Template('testIdentifier', array(
+            'path' => 'test.stencil.php',
+        ));
+        $template->set('testvar', '123');
+        $template->set('testvar2', '456');
+
+        $template->setArray(array(
+            'testvar'  => '999',
+            'testvar2' => '111',
+        ), true);
+
+        $result = $template->render();
+
+        $this->assertEquals('<h1>999</h1><br /><p>111</p>', $result);
+    }
+
+    /**
+     * Test that rendering the template without setting all the variables
+     * renders properly but ommits the variable.
+     */
+    public function testRenderTemplateWithoutSettingVariables()
+    {
+        $template = new Template('testIdentifier', array(
+            'path' => 'test.stencil.php',
+        ));
+
+        $result = $template->render();
+
+        $this->assertEquals('<h1></h1><br /><p></p>', $result);
+    }
+
+    // Extend
+    // Extend with identifier checks
+    // Extend with config checks
+    // Render with inherit
+    // Template events
 }
