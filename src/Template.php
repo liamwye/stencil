@@ -268,9 +268,6 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
         // Pre Process
         $this->dispatch('Template_PreProcess', $context);
 
-        // Pre-process the template variables
-        $this->dispatch('Variables_PreProcess', $context);
-
         // Loop through template variables and import them into local namespace
         foreach ($context['variables'] as $__key => $__variable) {
             // Check this is a child template that needs to be rendered
