@@ -200,7 +200,7 @@ class Template extends \Stencil\Observer\Observable implements TemplateInterface
     public function extend($identifier, $config = array())
     {
         // Utilise the setup method but prompt it to return the config and not save
-        $config = $this->setup($config, true, true);
+        $config = $this->setup($config, false, true);
 
         // To allow extension we will try to get the name of the called class
         $template = false;
